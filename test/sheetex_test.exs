@@ -5,7 +5,7 @@ defmodule SheetexTest do
 
   test "happy path test" do
     {:ok, result} =
-      Sheetex.fetch_sheet(
+      Sheetex.fetch_rows(
         test_sheet_id(),
         key: api_key()
       )
@@ -15,7 +15,7 @@ defmodule SheetexTest do
 
   test "accepts ranges parameter" do
     {:ok, result} =
-      Sheetex.fetch_sheet(
+      Sheetex.fetch_rows(
         test_sheet_id(),
         key: api_key(),
         ranges: "A1:B2"

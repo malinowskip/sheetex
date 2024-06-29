@@ -1,6 +1,7 @@
 defmodule Sheetex do
   @moduledoc """
-    See `fetch_sheet/2`.
+    For when you just want to fetch some rows from a Google Sheet.
+    See `fetch_rows/2`.
   """
   alias GoogleApi.Sheets
   alias GoogleApi.Sheets.V4.Model
@@ -17,13 +18,10 @@ defmodule Sheetex do
   **You must provide `key` OR `oauth_token` for authorization.**
   - `key` – API key.
   - `oauth_token` – OAuth token.
-  - `range` (or `ranges`) – this option can be used if you want to fetch a
-    specific range from a spreadsheet using the [A1
+  - `range` – use this if you want to fetch a specific range from a spreadsheet using the [A1
     notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1).
-    The Google Sheets API uses the `ranges` parameter and supports selecting
-    multiple ranges, but `fetch_sheet/2` will only return the first range.
   """
-  def fetch_sheet(spreadsheet_id, opts) do
+  def fetch_rows(spreadsheet_id, opts) do
     case Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get(
            Sheets.V4.Connection.new(),
            spreadsheet_id,
@@ -80,10 +78,10 @@ defmodule Sheetex do
   end
 
   @doc """
-  See `fetch_sheet/2`
+  See `fetch_rows/2`
   """
-  def fetch_sheet!(spreadsheet_id, opts) do
-    case fetch_sheet(spreadsheet_id, opts) do
+  def fetch_rows!(spreadsheet_id, opts) do
+    case fetch_rows(spreadsheet_id, opts) do
       {:ok, result} -> result
       {:error, message} -> raise(message)
     end
