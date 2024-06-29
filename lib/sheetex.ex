@@ -1,21 +1,33 @@
 defmodule Sheetex do
+  @moduledoc """
+    See `fetch_sheet/2`.
+  """
   alias GoogleApi.Sheets
   alias GoogleApi.Sheets.V4.Model
 
   @doc """
-  Fetch the contents of a Google Sheet.
+  Fetch rows from a Google Sheet.
+
+  In order for this to work, you need an API key or an OAuth token that will
+  be passed to the underyling Google Sheets API. See [Google’s official
+  authorization
+  docs](https://developers.google.com/workspace/guides/get-started).
+
+  ## Options
+  **You must provide `key` OR `oauth_token` for authorization.**
+  - `key` – API key.
+  - `oauth_token` – OAuth token.
+  - `range` (or `ranges`) – this option can be used if you want to fetch a
+    specific range from a spreadsheet using the [A1
+    notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1).
+    The Google Sheets API uses the `ranges` parameter and supports selecting
+    multiple ranges, but `fetch_sheet/2` will only return the first range.
   """
   def fetch_sheet(spreadsheet_id, opts) do
-    additional_opts = [
-      # Apply field mask to only get the value of each cell in the spreadsheet/range.
-      # see https://developers.google.com/sheets/api/guides/field-masks
-      {:fields, "sheets.data(rowData(values(effectiveValue)))"}
-    ]
-
     case Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get(
            Sheets.V4.Connection.new(),
            spreadsheet_id,
-           opts ++ additional_opts
+           build_opts(opts)
          ) do
       {:ok, sheets} ->
         # Grab only the first sheet.
@@ -46,16 +58,57 @@ defmodule Sheetex do
     end
   end
 
-  def fetch_sheet!(spreadsheet_id, opts) do
-    {:ok, result} = fetch_sheet(spreadsheet_id, opts)
+  # Build the options for a `Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get/4` call.
+  defp build_opts(initial_opts) do
+    # Support the `range` option by coercing it to `ranges`, which is used by the Sheets API.
+    coerce_range_to_ranges = fn opts ->
+      case opts[:range] do
+        v when is_binary(v) -> opts ++ [{:ranges, v}]
+        _ -> opts
+      end
+    end
 
-    result
+    # Apply field mask to only get the value of each cell in the spreadsheet/range.
+    # see https://developers.google.com/sheets/api/guides/field-masks
+    apply_field_mask = fn opts ->
+      opts ++ [{:fields, "sheets.data(rowData(values(effectiveValue)))"}]
+    end
+
+    initial_opts
+    |> coerce_range_to_ranges.()
+    |> apply_field_mask.()
   end
 
   @doc """
-  Transform the result (a list of rows) into a list of maps – using the first row as the header row.
+  See `fetch_sheet/2`
   """
-  @spec to_kv(list()) :: list(map())
+  def fetch_sheet!(spreadsheet_id, opts) do
+    case fetch_sheet(spreadsheet_id, opts) do
+      {:ok, result} -> result
+      {:error, message} -> raise(message)
+    end
+  end
+
+  @doc """
+  Transform a list of rows into a list of maps using the first row as the header row.
+
+  ## Examples
+
+      iex> rows = [["A", "B"], ["A1", "B2"], ["A2", "B2"]]
+      iex> Sheetex.to_kv(rows)
+      [
+        %{
+          "A" => "A1",
+          "B" => "B2"
+        },
+        %{
+          "A" => "A2",
+          "B" => "B2"
+        }
+      ]
+
+  """
+  @spec to_kv(list(list())) :: list(map())
   def to_kv(result) when is_list(result) do
     [header_row | rows] = result
 
