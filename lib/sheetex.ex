@@ -116,7 +116,7 @@ defmodule Sheetex do
     # hence the `range` option in singular.
     add_range = fn opts ->
       case user_opts[:range] do
-        v when is_binary(v) -> opts ++ [{:ranges, v}]
+        v when is_binary(v) -> opts ++ [{:ranges, [v]}]
         _ -> opts
       end
     end
