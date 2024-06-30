@@ -22,7 +22,8 @@ defmodule SheetexTest do
 
   test "fetch_rows/2 returns http error code if google sheets api returns an error" do
     result = fetch_rows(test_sheet_id(), [])
-    assert result = {:error, 403}
+
+    assert ^result = {:error, 403}
   end
 
   test "fetch_rows!/2 raises an error on failure" do
