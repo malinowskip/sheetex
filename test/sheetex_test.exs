@@ -77,6 +77,20 @@ defmodule SheetexTest do
     assert ^row = [1, 1, 2]
   end
 
+  test "7: data types" do
+    [
+      _,
+      [string_cell, integer_cell, float_cell, boolean_cell, nil_cell, error_cell]
+    ] = fetch_rows!(test_sheet_id(), key: api_key(), range: "7!A:Z")
+
+    assert is_binary(string_cell)
+    assert is_integer(integer_cell)
+    assert is_float(float_cell)
+    assert is_boolean(boolean_cell)
+    assert is_nil(nil_cell)
+    assert %GoogleApi.Sheets.V4.Model.ErrorValue{} = error_cell
+  end
+
   defp api_key do
     case source!([".env.testing"])["GOOGLE_SHEETS_API_KEY"] do
       value when is_binary(value) -> value
