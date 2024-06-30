@@ -1,7 +1,7 @@
 defmodule Sheetex do
   @moduledoc """
     For when you just want to fetch some rows from a Google Sheet.
-    See `fetch_rows/2`.
+    See `fetch_rows/2` for more information.
   """
   alias GoogleApi.Sheets
   alias GoogleApi.Sheets.V4.Model
@@ -9,23 +9,23 @@ defmodule Sheetex do
   @doc """
   Fetch rows from a Google Sheet.
 
-  In order for this to work, you need an API key or an OAuth token that will
-  be passed to the underyling Google Sheets API. See [Google’s official
+  For this to work, you need an API key or an OAuth token that will
+  be passed to the Google Sheets API. See [Google’s official
   authorization
   docs](https://developers.google.com/workspace/guides/get-started).
 
   ## Options
-  **You must provide `key` OR `oauth_token` for authorization.**
+  **You must provide either `key` OR `oauth_token` for authorization.**
   - `key` – API key.
   - `oauth_token` – OAuth token.
-  - `range` – use this if you want to fetch a specific range from a spreadsheet using the [A1
+  - `range` – Use this if you want to fetch a specific range from a spreadsheet using the [A1
     notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1).
   """
   def fetch_rows(spreadsheet_id, opts) do
     case Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get(
            Sheets.V4.Connection.new(),
            spreadsheet_id,
-           build_opts(opts)
+           build_opts_for_sheets_spreadsheets_get(opts)
          ) do
       {:ok, sheets} ->
         # Grab only the first sheet.
@@ -57,24 +57,39 @@ defmodule Sheetex do
   end
 
   # Build the options for a `Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get/4` call.
-  defp build_opts(initial_opts) do
-    # Support the `range` option by coercing it to `ranges`, which is used by the Sheets API.
-    coerce_range_to_ranges = fn opts ->
-      case opts[:range] do
+  defp build_opts_for_sheets_spreadsheets_get(user_opts) do
+    # The Sheets API uses `ranges` but we only fetch the first range,
+    # hence the `range` option in singular.
+    add_ranges = fn opts ->
+      case user_opts[:range] do
         v when is_binary(v) -> opts ++ [{:ranges, v}]
         _ -> opts
       end
     end
 
-    # Apply field mask to only get the value of each cell in the spreadsheet/range.
-    # see https://developers.google.com/sheets/api/guides/field-masks
-    apply_field_mask = fn opts ->
-      opts ++ [{:fields, "sheets.data(rowData(values(effectiveValue)))"}]
+    # API key
+    add_key = fn opts ->
+      case user_opts[:key] do
+        v when is_binary(v) -> opts ++ [{:key, v}]
+        _ -> opts
+      end
     end
 
-    initial_opts
-    |> coerce_range_to_ranges.()
-    |> apply_field_mask.()
+    add_oauth_token = fn opts ->
+      case user_opts[:oauth_token] do
+        v when is_binary(v) -> opts ++ [{:oauth_token, v}]
+        _ -> opts
+      end
+    end
+
+    [
+      # Apply field mask to only get the value of each cell in the spreadsheet/range.
+      # see https://developers.google.com/sheets/api/guides/field-masks
+      {:fields, "sheets.data(rowData(values(effectiveValue)))"}
+    ]
+    |> add_key.()
+    |> add_oauth_token.()
+    |> add_ranges.()
   end
 
   @doc """

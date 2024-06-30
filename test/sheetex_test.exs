@@ -13,12 +13,12 @@ defmodule SheetexTest do
     assert ^result = [["col1", "col2"], [1, 1], ["C", 2]], [["d", 2], ["asdf", "asfd"]]
   end
 
-  test "accepts ranges parameter" do
+  test "accepts range parameter" do
     {:ok, result} =
       Sheetex.fetch_rows(
         test_sheet_id(),
         key: api_key(),
-        ranges: "A1:B2"
+        range: "A1:B2"
       )
 
     assert ^result = [["col1", "col2"], [1, 1]]
