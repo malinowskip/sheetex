@@ -77,7 +77,10 @@ defmodule SheetexTest do
   end
 
   defp api_key do
-    source!([".env.testing"])["GOOGLE_SHEETS_API_KEY"]
+    case source!([".env.testing"])["GOOGLE_SHEETS_API_KEY"] do
+      value when is_binary(value) -> value
+      _ -> raise("Please provide the `GOOGLE_SHEETS_API_KEY` variable in `.env.testing`.")
+    end
   end
 
   defp test_sheet_id do
