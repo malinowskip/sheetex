@@ -41,7 +41,7 @@ defmodule Sheetex.MixProject do
   end
 
   defp description do
-    "For when you just want to fetch some rows from a Google Sheet."
+    "Fetch rows from a Google Sheet."
   end
 
   defp docs do

@@ -10,7 +10,13 @@ defmodule SheetexTest do
         key: api_key()
       )
 
-    assert ^result = [["col1", "col2"], [1, 1], ["C", 2]], [["d", 2], ["asdf", "asfd"]]
+    assert ^result = [
+             ["col1", "col2"],
+             [1, 1],
+             ["C", 2],
+             [nil, nil, nil, "random value outside the table"],
+             ["after empty row", "value"]
+           ]
   end
 
   test "accepts range parameter" do
