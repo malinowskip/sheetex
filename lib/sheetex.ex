@@ -9,7 +9,9 @@ defmodule Sheetex do
   alias GoogleApi.Sheets.V4.Model
 
   @type option() :: {:range, String.t()} | {:key, String.t()} | {:oauth_token, String.t()}
-  @type rows() :: list(list() | nil) | nil
+  @type rows() :: list(cell()) | nil
+  @type cell() ::
+          nil | GoogleApi.Sheets.V4.Model.ErrorValue.t() | String.t() | float() | boolean()
 
   @doc """
   Fetch rows from a Google Sheet.
