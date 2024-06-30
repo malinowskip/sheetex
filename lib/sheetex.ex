@@ -15,7 +15,7 @@ defmodule Sheetex do
   Fetch rows from a Google Sheet.
 
   For this to work, you need an API key or an OAuth token that will
-  be passed to the Google Sheets API. See [Google’s official
+  be passed to the Google Sheets API. [See Google’s official
   authorization
   docs](https://developers.google.com/workspace/guides/get-started).
 
@@ -23,13 +23,13 @@ defmodule Sheetex do
   **You must provide either `key` OR `oauth_token` for authorization.**
   - `key` – API key.
   - `oauth_token` – OAuth token.
-  - `range` – Use this if you want to fetch a specific range from a spreadsheet using the [A1
-    notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1).
+  - `range` – Use this option if you want to fetch a specific range from a
+    spreadsheet using the [A1 notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1).
 
   ## Output
-  - The output includes rows up to the last non-empty row in the sheet
-    (or within the specified range).
-  - For each non-empty row, the result contains a list of cell values up
+  - The output will include rows up to the last non-empty row in the sheet
+    (or from within the specified range).
+  - For each non-empty row, the output will contain a list of cell values up
     to the rightmost non-empty cell.
   - Empty rows are represented as `nil`.
   """
@@ -45,10 +45,12 @@ defmodule Sheetex do
         # Grab only the first sheet.
         %Model.Spreadsheet{sheets: [sheet | _]} = sheets
 
-        # Grab only the first instance of `GridData` for the sheet.
+        # Grab only the first range.
         %Model.Sheet{data: [%Model.GridData{rowData: rows} | _]} = sheet
 
-        {:ok, parse_rows(rows)}
+        result = parse_rows(rows)
+
+        {:ok, result}
 
       {:error, %Tesla.Env{status: status}} ->
         {:error, status}
@@ -58,37 +60,32 @@ defmodule Sheetex do
   @doc """
   See `fetch_rows/2`.
   """
-  @spec fetch_rows!(String.t(), [option]) :: list(list())
+  @spec fetch_rows!(String.t(), [option]) :: rows()
   def fetch_rows!(spreadsheet_id, opts) do
     case fetch_rows(spreadsheet_id, opts) do
       {:ok, result} -> result
-      {:error, message} -> raise("Error. Status: " <> Integer.to_string(message))
+      {:error, message} -> raise("Error. Status code: " <> Integer.to_string(message) <> ".")
     end
   end
 
-  defp parse_rows(rows) do
-    case rows do
-      rows_list when is_list(rows_list) ->
-        Enum.map(rows, fn row ->
-          parse_row(row)
-        end)
+  defp parse_rows(rows) when is_nil(rows), do: nil
 
-      _ ->
-        nil
-    end
+  defp parse_rows(rows) when is_list(rows) do
+    Enum.map(rows, fn row ->
+      parse_row(row)
+    end)
   end
 
-  defp parse_row(row) do
-    case row do
-      %Model.RowData{values: cell_data_items} when is_list(cell_data_items) ->
-        Enum.map(cell_data_items, fn cell_data ->
-          parse_cell_data(cell_data)
-        end)
+  defp parse_row(row) when is_nil(row), do: nil
+  defp parse_row(%Model.RowData{values: cell_data_items}) when is_nil(cell_data_items), do: nil
 
-      _ ->
-        nil
-    end
+  defp parse_row(%Model.RowData{values: cell_data_items}) do
+    Enum.map(cell_data_items, fn cell_data ->
+      parse_cell_data(cell_data)
+    end)
   end
+
+  defp parse_cell_data(cell_data) when is_nil(cell_data), do: nil
 
   defp parse_cell_data(cell_data) do
     case cell_data do
@@ -101,8 +98,7 @@ defmodule Sheetex do
             errorValue: error_value,
             boolValue: bool_value
           } ->
-            string_value || number_value || formula_value || error_value ||
-              bool_value
+            string_value || number_value || formula_value || error_value || bool_value
 
           _ ->
             nil
@@ -137,8 +133,8 @@ defmodule Sheetex do
     end
 
     [
-      # Apply field mask to only get the value of each cell in the spreadsheet/range.
-      # see https://developers.google.com/sheets/api/guides/field-masks
+      # Apply field mask to get only the effective value of each cell in the spreadsheet/range.
+      # See https://developers.google.com/sheets/api/guides/field-masks.
       {:fields, "sheets.data(rowData(values(effectiveValue)))"}
     ]
     |> add_key.()
