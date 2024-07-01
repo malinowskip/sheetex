@@ -11,7 +11,12 @@ defmodule Sheetex do
   @type option() :: {:range, String.t()} | {:key, String.t()} | {:oauth_token, String.t()}
   @type rows() :: list(cell()) | nil
   @type cell() ::
-          nil | GoogleApi.Sheets.V4.Model.ErrorValue.t() | String.t() | float() | boolean()
+          String.t()
+          | integer()
+          | float()
+          | boolean()
+          | nil
+          | GoogleApi.Sheets.V4.Model.ErrorValue.t()
 
   @doc """
   Fetch rows from a Google Sheet.
