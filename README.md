@@ -11,7 +11,7 @@ The package can be installed by adding `sheetex` to your list of dependencies in
 ```elixir
 def deps do
   [
-    {:sheetex, "~> 0.1.0"}
+    {:sheetex, "~> 0.2.0"}
   ]
 end
 ```

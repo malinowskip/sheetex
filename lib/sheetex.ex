@@ -9,7 +9,7 @@ defmodule Sheetex do
   alias GoogleApi.Sheets.V4.Model
 
   @type option() :: {:range, String.t()} | {:key, String.t()} | {:oauth_token, String.t()}
-  @type rows() :: list(cell()) | nil
+  @type rows() :: list(cell())
   @type cell() ::
           String.t()
           | integer()
@@ -38,7 +38,6 @@ defmodule Sheetex do
     (or from within the specified range).
   - For each non-empty row, the output will contain a list of cell values up
     to the rightmost non-empty cell.
-  - Empty rows are represented as `nil`.
   """
 
   @spec fetch_rows(String.t(), [option]) :: {:ok, rows()} | {:error, integer()}
@@ -83,33 +82,27 @@ defmodule Sheetex do
     end)
   end
 
-  defp parse_row(row) when is_nil(row), do: nil
-  defp parse_row(%Model.RowData{values: cell_data_items}) when is_nil(cell_data_items), do: nil
-
-  defp parse_row(%Model.RowData{values: cell_data_items}) do
+  defp parse_row(%Model.RowData{values: cell_data_items}) when is_list(cell_data_items) do
     Enum.map(cell_data_items, fn cell_data ->
       parse_cell_data(cell_data)
     end)
   end
 
-  defp parse_cell_data(cell_data) when is_nil(cell_data), do: nil
+  defp parse_row(_), do: []
 
-  defp parse_cell_data(cell_data) do
-    case cell_data do
-      %Model.CellData{effectiveValue: effective_value} ->
-        case effective_value do
-          %Model.ExtendedValue{
-            stringValue: string_value,
-            numberValue: number_value,
-            formulaValue: formula_value,
-            errorValue: error_value,
-            boolValue: bool_value
-          } ->
-            string_value || number_value || formula_value || error_value || bool_value
+  defp parse_cell_data(%Model.CellData{effectiveValue: effective_value}) do
+    case effective_value do
+      %Model.ExtendedValue{
+        stringValue: string_value,
+        numberValue: number_value,
+        formulaValue: formula_value,
+        errorValue: error_value,
+        boolValue: bool_value
+      } ->
+        string_value || number_value || formula_value || error_value || bool_value
 
-          _ ->
-            nil
-        end
+      _ ->
+        nil
     end
   end
 
