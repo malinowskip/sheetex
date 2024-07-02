@@ -64,7 +64,7 @@ defmodule Sheetex do
   end
 
   @doc """
-  See `fetch_rows/2`.
+  Similar to `fetch_rows/2`, but raises an exception on failure.
   """
   @spec fetch_rows!(String.t(), [option]) :: rows()
   def fetch_rows!(spreadsheet_id, opts) do

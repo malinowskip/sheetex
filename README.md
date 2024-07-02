@@ -18,4 +18,4 @@ end
 
 ## Testing
 
-Create an `.env.testing` file and add the `GOOGLE_SHEETS_API_KEY` variable.
+Before running `mix test`, you need to create an `.env.testing` file and add the `GOOGLE_SHEETS_API_KEY` variable.
