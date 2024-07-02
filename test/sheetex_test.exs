@@ -1,5 +1,4 @@
 defmodule SheetexTest do
-  import Dotenvy
   use ExUnit.Case, async: true
   doctest Sheetex
   import Sheetex
@@ -21,10 +20,11 @@ defmodule SheetexTest do
            ]
   end
 
-  test "fetch_rows/2 returns http error code if google sheets api returns an error" do
+  test "fetch_rows/2 returns error message if google sheets api returns an error" do
     result = fetch_rows(test_sheet_id(), [])
 
-    assert ^result = {:error, 403}
+    assert {:error, message} = result
+    assert is_binary(message)
   end
 
   test "fetch_rows!/2 raises an error on failure" do
@@ -90,14 +90,11 @@ defmodule SheetexTest do
     assert is_float(float_cell)
     assert is_boolean(boolean_cell)
     assert is_nil(nil_cell)
-    assert %GoogleApi.Sheets.V4.Model.ErrorValue{} = error_cell
+    assert %{message: _, type: _} = error_cell
   end
 
   defp api_key do
-    case source!([".env.testing"])["GOOGLE_SHEETS_API_KEY"] do
-      value when is_binary(value) -> value
-      _ -> raise("Please provide the `GOOGLE_SHEETS_API_KEY` variable in `.env.testing`.")
-    end
+    System.fetch_env!("GOOGLE_SHEETS_API_KEY")
   end
 
   defp test_sheet_id do

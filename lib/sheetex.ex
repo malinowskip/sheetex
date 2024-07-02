@@ -5,9 +5,6 @@ defmodule Sheetex do
   See `fetch_rows/2` for more information.
   """
 
-  alias GoogleApi.Sheets
-  alias GoogleApi.Sheets.V4.Model
-
   @type option() :: {:range, String.t()} | {:key, String.t()} | {:oauth_token, String.t()}
   @type rows() :: list(list(cell()))
   @type cell() ::
@@ -16,7 +13,7 @@ defmodule Sheetex do
           | float()
           | boolean()
           | nil
-          | GoogleApi.Sheets.V4.Model.ErrorValue.t()
+          | %{message: String.t() | nil, type: String.t() | nil}
 
   @doc """
   Fetch rows from a Google Sheet.
@@ -40,26 +37,28 @@ defmodule Sheetex do
     to the rightmost non-empty cell.
   """
 
-  @spec fetch_rows(String.t(), [option]) :: {:ok, rows()} | {:error, integer()}
+  @spec fetch_rows(String.t(), [option]) :: {:ok, rows()} | {:error, String.t()}
   def fetch_rows(spreadsheet_id, opts) do
-    case Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get(
-           Sheets.V4.Connection.new(),
-           spreadsheet_id,
-           build_opts_for_sheets_spreadsheets_get(opts)
-         ) do
-      {:ok, sheets} ->
+    case query_google_sheets_api(spreadsheet_id, opts) do
+      {:ok, body} ->
         # Grab only the first sheet.
-        %Model.Spreadsheet{sheets: [sheet | _]} = sheets
+        %{sheets: [sheet | _]} = body
 
         # Grab only the first range.
-        %Model.Sheet{data: [%Model.GridData{rowData: rows} | _]} = sheet
+        %{data: [row_data | _]} = sheet
+
+        rows =
+          case row_data do
+            %{rowData: rows} -> rows
+            _ -> nil
+          end
 
         result = parse_rows(rows)
 
         {:ok, result}
 
-      {:error, %Tesla.Env{status: status}} ->
-        {:error, status}
+      {:error, message} ->
+        {:error, message}
     end
   end
 
@@ -70,11 +69,9 @@ defmodule Sheetex do
   def fetch_rows!(spreadsheet_id, opts) do
     case fetch_rows(spreadsheet_id, opts) do
       {:ok, result} -> result
-      {:error, message} -> raise("Error. Status code: " <> Integer.to_string(message) <> ".")
+      {:error, message} -> raise("Error: #{message}")
     end
   end
-
-  defp parse_rows(rows) when is_nil(rows), do: nil
 
   defp parse_rows(rows) when is_list(rows) do
     Enum.map(rows, fn row ->
@@ -82,7 +79,9 @@ defmodule Sheetex do
     end)
   end
 
-  defp parse_row(%Model.RowData{values: cell_data_items}) when is_list(cell_data_items) do
+  defp parse_rows(_), do: nil
+
+  defp parse_row(%{values: cell_data_items}) when is_list(cell_data_items) do
     Enum.map(cell_data_items, fn cell_data ->
       parse_cell_data(cell_data)
     end)
@@ -90,55 +89,82 @@ defmodule Sheetex do
 
   defp parse_row(_), do: []
 
-  defp parse_cell_data(%Model.CellData{effectiveValue: effective_value}) do
+  defp parse_cell_data(%{effectiveValue: effective_value}) do
     case effective_value do
-      %Model.ExtendedValue{
-        stringValue: string_value,
-        numberValue: number_value,
-        formulaValue: formula_value,
-        errorValue: error_value,
-        boolValue: bool_value
-      } ->
-        string_value || number_value || formula_value || error_value || bool_value
+      %{stringValue: value} ->
+        value
+
+      %{numberValue: value} ->
+        value
+
+      %{formulaValue: value} ->
+        value
+
+      %{errorValue: value} ->
+        value
+
+      %{boolValue: value} ->
+        value
 
       _ ->
         nil
     end
   end
 
-  # Build the options for a `Sheets.V4.Api.Spreadsheets.sheets_spreadsheets_get/4` call.
-  defp build_opts_for_sheets_spreadsheets_get(user_opts) do
-    # The Sheets API uses `ranges` but we only return the first range,
-    # hence the `range` option in singular.
-    add_range = fn opts ->
-      case user_opts[:range] do
-        v when is_binary(v) -> opts ++ [{:ranges, [v]}]
-        _ -> opts
-      end
-    end
+  defp parse_cell_data(_), do: nil
 
-    # API key
-    add_key = fn opts ->
-      case user_opts[:key] do
-        v when is_binary(v) -> opts ++ [{:key, v}]
-        _ -> opts
-      end
-    end
+  @spec query_google_sheets_api(String.t(), [option]) :: {:ok, map()} | {:error, String.t()}
+  defp query_google_sheets_api(spreadsheet_id, opts) do
+    url = "https://sheets.googleapis.com/v4/spreadsheets/" <> spreadsheet_id
 
-    add_oauth_token = fn opts ->
-      case user_opts[:oauth_token] do
-        v when is_binary(v) -> opts ++ [{:oauth_token, v}]
-        _ -> opts
-      end
-    end
-
-    [
+    base_middlewares = [
+      {Tesla.Middleware.BaseUrl, url},
       # Apply field mask to get only the effective value of each cell in the spreadsheet/range.
       # See https://developers.google.com/sheets/api/guides/field-masks.
-      {:fields, "sheets.data(rowData(values(effectiveValue)))"}
+      {Tesla.Middleware.Query, [fields: "sheets.data(rowData(values(effectiveValue)))"]},
+      {Tesla.Middleware.JSON, engine_opts: [keys: :atoms]}
     ]
-    |> add_key.()
-    |> add_oauth_token.()
-    |> add_range.()
+
+    final_middlewares =
+      Enum.reduce(opts, base_middlewares, fn option, acc ->
+        case option do
+          {:key, key} ->
+            [{Tesla.Middleware.Query, [key: key]} | acc]
+
+          {:range, range} ->
+            [{Tesla.Middleware.Query, [ranges: range]} | acc]
+
+          {:oauth_token, oauth_token} ->
+            [{Tesla.Middleware.BearerAuth, token: oauth_token} | acc]
+
+          _ ->
+            acc
+        end
+      end)
+
+    response =
+      final_middlewares
+      |> Tesla.client(Tesla.Adapter.Hackney)
+      |> Tesla.request(method: :get)
+
+    case response do
+      {:ok, %Tesla.Env{body: body, status: status}} ->
+        case status do
+          200 ->
+            {:ok, body}
+
+          _ ->
+            case body do
+              %{error: %{message: error_message}} ->
+                {:error, error_message}
+
+              _ ->
+                {:error, :unhandled_exception}
+            end
+        end
+
+      {:error, _} ->
+        {:error, :unhandled_exception}
+    end
   end
 end

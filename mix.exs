@@ -20,14 +20,16 @@ defmodule Sheetex.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: []
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:google_api_sheets, "0.31.0"},
+      {:tesla, "~> 1.10"},
+      {:jason, "~> 1.0"},
+      {:hackney, "~> 1.20"},
       {:ex_doc, "~> 0.34.1", only: :dev, runtime: false},
       {:dotenvy, "~> 0.8.0", only: [:test]}
     ]
