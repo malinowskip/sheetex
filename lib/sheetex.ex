@@ -9,7 +9,7 @@ defmodule Sheetex do
   alias GoogleApi.Sheets.V4.Model
 
   @type option() :: {:range, String.t()} | {:key, String.t()} | {:oauth_token, String.t()}
-  @type rows() :: list(cell())
+  @type rows() :: list(list(cell()))
   @type cell() ::
           String.t()
           | integer()
@@ -34,7 +34,7 @@ defmodule Sheetex do
     spreadsheet using the [A1 notation](https://developers.google.com/sheets/api/guides/concepts#expandable-1).
 
   ## Output
-  - The output will include rows up to the last non-empty row in the sheet
+  - The output will include a list of rows up to the last non-empty row in the sheet
     (or from within the specified range).
   - For each non-empty row, the output will contain a list of cell values up
     to the rightmost non-empty cell.
