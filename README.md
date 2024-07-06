@@ -2,7 +2,7 @@
 
 For when you just want to fetch some rows from a Google Sheet in Elixir.
 
-See documentation: https://hexdocs.pm/sheetex.
+See documentation: <https://hexdocs.pm/sheetex>.
 
 ## Installation
 
@@ -11,7 +11,7 @@ The package can be installed by adding `sheetex` to your list of dependencies in
 ```elixir
 def deps do
   [
-    {:sheetex, "~> 0.2.0"}
+    {:sheetex, "~> 0.3.0"}
   ]
 end
 ```

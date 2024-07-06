@@ -35,6 +35,10 @@ defmodule Sheetex do
     (or from within the specified range).
   - For each non-empty row, the output will contain a list of cell values up
     to the rightmost non-empty cell.
+
+  > ### Converting rows to key-value pairs {: .tip}
+  >
+  > See `to_kv/1` for converting the output into a list of maps.
   """
 
   @spec fetch_rows(String.t(), [option]) :: {:ok, rows()} | {:error, String.t()}
@@ -72,6 +76,60 @@ defmodule Sheetex do
       {:error, message} -> raise("Error: #{message}")
     end
   end
+
+  @doc """
+  Convert the result of `fetch_rows/2` to a list of maps.
+
+  Values from the first row will be used as keys. If a column contains
+  an empty header, all values in that column will be dropped.
+  """
+  @spec to_kv(Sheetex.rows(), [{:atom_keys, boolean()}]) :: list(map())
+  def to_kv(rows, _opts \\ [])
+
+  def to_kv(rows, opts) when is_list(rows) do
+    # Helper function. Given a list, remove elements at the specified indices.
+    remove_by_index = fn list, indices ->
+      Stream.with_index(list)
+      |> Stream.reject(fn {_, i} -> Enum.any?(indices, &(&1 === i)) end)
+      |> Enum.map(fn {el, _} -> el end)
+    end
+
+    # Assume the first row is the header row.
+    [header_row | rows] = rows
+
+    header_row =
+      case Keyword.get(opts, :atom_keys, false) do
+        true -> Enum.map(header_row, &String.to_atom/1)
+        false -> header_row
+      end
+
+    # Indices of any `nil` values appearing in the header row.
+    indices_to_reject =
+      Enum.with_index(header_row)
+      |> Enum.filter(fn {el, _} -> is_nil(el) end)
+      |> Enum.map(fn {_, i} -> i end)
+
+    # Remove any `nil` values from the header row.
+    normalized_header_row = remove_by_index.(header_row, indices_to_reject)
+    num_columns = Enum.count(normalized_header_row)
+    last_column_index = num_columns - 1
+
+    rows
+    # Delete values corresponding to `nil` headers, which had been
+    # removed from the header row.
+    |> Stream.map(&remove_by_index.(&1, indices_to_reject))
+    # Remove any values overflowing the last header column.
+    |> Stream.map(&Enum.slice(&1, 0..last_column_index))
+    # Ensure each row has as many values as there are header columns by
+    # right-padding the row with `nil` values.
+    |> Stream.map(&(&1 ++ List.duplicate(nil, num_columns - Enum.count(&1))))
+    # Match each value in a row to a header column, returning a list of tuples.
+    |> Stream.map(&Enum.zip(normalized_header_row, &1))
+    # Transform each resulting two-element tuple into a map.
+    |> Enum.map(&Map.new/1)
+  end
+
+  def to_kv(nil, _opts), do: nil
 
   defp parse_rows(rows) when is_list(rows) do
     Enum.map(rows, fn row ->

@@ -18,6 +18,16 @@ defmodule SheetexTest do
              [nil, nil, nil, "random value outside the table"],
              ["after empty row", "value"]
            ]
+
+    kv = Sheetex.to_kv(result)
+
+    assert ^kv = [
+             %{"col1" => nil, "col2" => nil},
+             %{"col1" => 1, "col2" => 1},
+             %{"col1" => "C", "col2" => 2},
+             %{"col1" => nil, "col2" => nil},
+             %{"col1" => "after empty row", "col2" => "value"}
+           ]
   end
 
   test "fetch_rows/2 returns error message if google sheets api returns an error" do
@@ -91,6 +101,75 @@ defmodule SheetexTest do
     assert is_boolean(boolean_cell)
     assert is_nil(nil_cell)
     assert %{message: _, type: _} = error_cell
+  end
+
+  test "to_kv: happy path test" do
+    data = [[:a, :b, :c], [1, 2, 3], [1, 2, 3]]
+
+    result = Sheetex.to_kv(data)
+
+    assert ^result = [%{c: 3, a: 1, b: 2}, %{c: 3, a: 1, b: 2}]
+  end
+
+  test "to_kv: empty values are represented as nil" do
+    data = [[:a, :b, :c], [], [1, 2], [1, 2], []]
+
+    result = Sheetex.to_kv(data)
+
+    assert ^result = [
+             %{a: nil, b: nil, c: nil},
+             %{c: nil, a: 1, b: 2},
+             %{c: nil, a: 1, b: 2},
+             %{a: nil, b: nil, c: nil}
+           ]
+  end
+
+  test "to_kv: values that don’t have a column are dropped" do
+    data = [[:a, :b], [1, 2, 3], [1, 2, 3]]
+
+    result = Sheetex.to_kv(data)
+
+    assert ^result = [%{a: 1, b: 2}, %{a: 1, b: 2}]
+  end
+
+  test "to_kv: atom keys" do
+    data = [["a", "b"], [1, 2, 3], [1, 2, 3]]
+    result = Sheetex.to_kv(data, atom_keys: true)
+    assert ^result = [%{a: 1, b: 2}, %{a: 1, b: 2}]
+  end
+
+  test "8: iris dataset" do
+    result =
+      fetch_rows!(test_sheet_id(), key: api_key(), range: "8!A1:E3")
+
+    kv = Sheetex.to_kv(result)
+
+    assert ^kv = [
+             %{
+               "petal_length" => 1.4,
+               "petal_width" => 0.2,
+               "sepal_length" => 5.1,
+               "sepal_width" => 3.5,
+               "species" => "Iris-setosa"
+             },
+             %{
+               "petal_length" => 1.4,
+               "petal_width" => 0.2,
+               "sepal_length" => 4.9,
+               "sepal_width" => 3,
+               "species" => "Iris-setosa"
+             }
+           ]
+  end
+
+  test "9: empty header in the middle" do
+    result =
+      fetch_rows!(test_sheet_id(), key: api_key(), range: "9!A1:C3")
+
+    kv =
+      Sheetex.to_kv(result)
+
+    assert ^kv = [%{"a" => 1, "c" => 3}]
   end
 
   defp api_key do

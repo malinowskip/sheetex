@@ -15,4 +15,4 @@ case api_key do
     raise("Please include `GOOGLE_SHEETS_API_KEY` in `.env.testing`.")
 end
 
-ExUnit.start(max_cases: 2)
+ExUnit.start(max_cases: 4)
