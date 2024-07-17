@@ -26,3 +26,5 @@ fetch_google_sheet-*.tar
 /tmp/
 
 .env.testing
+
+.DS_Store
