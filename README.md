@@ -2,6 +2,8 @@
 
 For when you just want to fetch some rows from a Google Sheet in Elixir.
 
+In order to use this package, you need a valid API key or OAuth token that will be passed to the Google Sheets API: <https://developers.google.com/workspace/guides/create-credentials>.
+
 See documentation: <https://hexdocs.pm/sheetex>.
 
 ## Installation
