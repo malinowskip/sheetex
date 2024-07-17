@@ -13,7 +13,7 @@ The package can be installed by adding `sheetex` to your list of dependencies in
 ```elixir
 def deps do
   [
-    {:sheetex, "~> 0.3.0"}
+    {:sheetex, "~> 0.4.0"}
   ]
 end
 ```
