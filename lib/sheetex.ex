@@ -173,7 +173,11 @@ defmodule Sheetex do
 
   @spec query_google_sheets_api(String.t(), [option]) :: {:ok, map()} | {:error, String.t()}
   defp query_google_sheets_api(spreadsheet_id, opts) do
-    url = "https://sheets.googleapis.com/v4/spreadsheets/" <> spreadsheet_id
+    url =
+      Path.join([
+        "https://sheets.googleapis.com/v4/spreadsheets/",
+        URI.encode_www_form(spreadsheet_id)
+      ])
 
     base_middlewares = [
       {Tesla.Middleware.BaseUrl, url},
