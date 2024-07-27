@@ -106,9 +106,12 @@ defmodule Sheetex do
     [header_row | rows] = rows
 
     header_row =
-      case Keyword.get(opts, :atom_keys, false) do
-        true -> Enum.map(header_row, &String.to_atom/1)
-        false -> header_row
+      if Keyword.get(opts, :atom_keys) === true do
+        Enum.map(header_row, fn header ->
+          if is_binary(header), do: String.to_atom(header), else: header
+        end)
+      else
+        header_row
       end
 
     # Indices of any `nil` values appearing in the header row.

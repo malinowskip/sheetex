@@ -47,4 +47,10 @@ defmodule SheetexTest.ToKv do
     result = Sheetex.to_kv(data, headers: ["a", "b", "c"], atom_keys: true)
     assert ^result = [%{a: 1, b: 2, c: 3}, %{a: 1, b: 2, c: 3}]
   end
+
+  test "[atom_keys: true] doesn’t throw if atoms provided" do
+    data = [[:a, :b], [1, 2], [1, 2]]
+    result = Sheetex.to_kv(data, atom_keys: true)
+    assert ^result = [%{a: 1, b: 2}, %{a: 1, b: 2}]
+  end
 end
