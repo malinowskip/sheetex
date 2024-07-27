@@ -18,9 +18,8 @@ defmodule Sheetex do
   @doc """
   Fetch rows from a Google Sheet.
 
-  For this to work, you need an API key or an OAuth token that will
-  be passed to the Google Sheets API. [See Google’s official
-  authorization
+  This function requires a Google Workspace API key or an OAuth token, which will
+  be passed to the Google Sheets API. [See Google’s official authorization
   docs](https://developers.google.com/workspace/guides/get-started).
 
   ## Options
@@ -33,8 +32,8 @@ defmodule Sheetex do
   ## Output
   - The output will include a list of rows up to the last non-empty row in the sheet
     (or from within the specified range).
-  - For each non-empty row, the output will contain a list of cell values up
-    to the rightmost non-empty cell.
+  - For each row, the output will contain a list of cell values up to the last
+    non-empty cell.
 
   > ### Converting rows to key-value pairs {: .tip}
   >
@@ -80,8 +79,9 @@ defmodule Sheetex do
   @doc """
   Convert the result of `fetch_rows/2` to a list of maps.
 
-  Values from the first row will be used as keys. If a column contains
-  an empty header, all values in that column will be dropped.
+  Values from the first row will be used as keys, unless the `headers` option
+  containing a list of headers is provided. If a column contains an empty header,
+  all values in that column will be dropped.
   """
   @spec to_kv(Sheetex.rows(), [{:atom_keys, boolean()}, {:headers, list()}]) :: list(map())
   def to_kv(rows, _opts \\ [])
