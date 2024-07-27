@@ -83,7 +83,7 @@ defmodule Sheetex do
   Values from the first row will be used as keys. If a column contains
   an empty header, all values in that column will be dropped.
   """
-  @spec to_kv(Sheetex.rows(), [{:atom_keys, boolean()}]) :: list(map())
+  @spec to_kv(Sheetex.rows(), [{:atom_keys, boolean()}, {:headers, list()}]) :: list(map())
   def to_kv(rows, _opts \\ [])
 
   def to_kv(rows, opts) when is_list(rows) do
@@ -94,7 +94,15 @@ defmodule Sheetex do
       |> Enum.map(fn {el, _} -> el end)
     end
 
-    # Assume the first row is the header row.
+    rows =
+      case Keyword.get(opts, :headers) do
+        header_row when is_list(header_row) ->
+          [header_row | rows]
+
+        _ ->
+          rows
+      end
+
     [header_row | rows] = rows
 
     header_row =

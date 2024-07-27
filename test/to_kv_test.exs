@@ -35,4 +35,16 @@ defmodule SheetexTest.ToKv do
     result = Sheetex.to_kv(data, atom_keys: true)
     assert ^result = [%{a: 1, b: 2}, %{a: 1, b: 2}]
   end
+
+  test "custom headers" do
+    data = [[1, 2], [1, 2, 3, 4]]
+    result = Sheetex.to_kv(data, headers: [:a, :b, :c])
+    assert ^result = [%{a: 1, b: 2, c: nil}, %{a: 1, b: 2, c: 3}]
+  end
+
+  test "custom headers are converted to atoms with [atom_keys: true]" do
+    data = [[1, 2, 3], [1, 2, 3]]
+    result = Sheetex.to_kv(data, headers: ["a", "b", "c"], atom_keys: true)
+    assert ^result = [%{a: 1, b: 2, c: 3}, %{a: 1, b: 2, c: 3}]
+  end
 end
