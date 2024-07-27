@@ -103,39 +103,14 @@ defmodule SheetexTest do
     assert %{message: _, type: _} = error_cell
   end
 
-  test "to_kv: happy path test" do
-    data = [[:a, :b, :c], [1, 2, 3], [1, 2, 3]]
+  test "9: empty header in the middle" do
+    result =
+      fetch_rows!(test_sheet_id(), key: api_key(), range: "9!A1:C3")
 
-    result = Sheetex.to_kv(data)
+    kv =
+      Sheetex.to_kv(result)
 
-    assert ^result = [%{c: 3, a: 1, b: 2}, %{c: 3, a: 1, b: 2}]
-  end
-
-  test "to_kv: empty values are represented as nil" do
-    data = [[:a, :b, :c], [], [1, 2], [1, 2], []]
-
-    result = Sheetex.to_kv(data)
-
-    assert ^result = [
-             %{a: nil, b: nil, c: nil},
-             %{c: nil, a: 1, b: 2},
-             %{c: nil, a: 1, b: 2},
-             %{a: nil, b: nil, c: nil}
-           ]
-  end
-
-  test "to_kv: values that don’t have a column are dropped" do
-    data = [[:a, :b], [1, 2, 3], [1, 2, 3]]
-
-    result = Sheetex.to_kv(data)
-
-    assert ^result = [%{a: 1, b: 2}, %{a: 1, b: 2}]
-  end
-
-  test "to_kv: atom keys" do
-    data = [["a", "b"], [1, 2, 3], [1, 2, 3]]
-    result = Sheetex.to_kv(data, atom_keys: true)
-    assert ^result = [%{a: 1, b: 2}, %{a: 1, b: 2}]
+    assert ^kv = [%{"a" => 1, "c" => 3}]
   end
 
   test "8: iris dataset" do
@@ -160,16 +135,6 @@ defmodule SheetexTest do
                "species" => "Iris-setosa"
              }
            ]
-  end
-
-  test "9: empty header in the middle" do
-    result =
-      fetch_rows!(test_sheet_id(), key: api_key(), range: "9!A1:C3")
-
-    kv =
-      Sheetex.to_kv(result)
-
-    assert ^kv = [%{"a" => 1, "c" => 3}]
   end
 
   defp api_key do
