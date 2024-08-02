@@ -113,6 +113,21 @@ defmodule SheetexTest do
     assert ^kv = [%{"a" => 1, "c" => 3}]
   end
 
+  @tag run: true
+  test "validation: missing spreadsheet_id" do
+    result =
+      fetch_rows(nil, key: api_key(), range: "9!A1:C3")
+
+    assert ^result = {:error, "Missing spreadsheet id."}
+  end
+
+  @tag run: true
+  test "validation: missing authorization options" do
+    result = fetch_rows(test_sheet_id(), [])
+
+    assert ^result = {:error, "Missing authorization token (:key or :oauth_token option)."}
+  end
+
   test "8: iris dataset" do
     result =
       fetch_rows!(test_sheet_id(), key: api_key(), range: "8!A1:E3")

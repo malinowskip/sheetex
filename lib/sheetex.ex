@@ -39,29 +39,46 @@ defmodule Sheetex do
   >
   > See `to_kv/1` for converting the output into a list of maps.
   """
-
   @spec fetch_rows(String.t(), [option]) :: {:ok, rows()} | {:error, String.t()}
   def fetch_rows(spreadsheet_id, opts) do
-    case query_google_sheets_api(spreadsheet_id, opts) do
-      {:ok, body} ->
-        # Grab only the first sheet.
-        %{sheets: [sheet | _]} = body
+    case validate_args(spreadsheet_id, opts) do
+      :ok ->
+        case query_google_sheets_api(spreadsheet_id, opts) do
+          {:ok, body} ->
+            # Grab only the first sheet.
+            %{sheets: [sheet | _]} = body
 
-        # Grab only the first range.
-        %{data: [row_data | _]} = sheet
+            # Grab only the first range.
+            %{data: [row_data | _]} = sheet
 
-        rows =
-          case row_data do
-            %{rowData: rows} -> rows
-            _ -> nil
-          end
+            rows =
+              case row_data do
+                %{rowData: rows} -> rows
+                _ -> nil
+              end
 
-        result = parse_rows(rows)
+            result = parse_rows(rows)
 
-        {:ok, result}
+            {:ok, result}
 
-      {:error, message} ->
-        {:error, message}
+          {:error, message} ->
+            {:error, message}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp validate_args(spreadsheet_id, _) when not is_binary(spreadsheet_id) do
+    {:error, "Missing spreadsheet id."}
+  end
+
+  defp validate_args(_, opts) do
+    if (Keyword.has_key?(opts, :key) or Keyword.has_key?(opts, :oauth_token)) === false do
+      {:error, "Missing authorization token (:key or :oauth_token option)."}
+    else
+      :ok
     end
   end
 
