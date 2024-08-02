@@ -108,7 +108,11 @@ defmodule Sheetex do
     header_row =
       if Keyword.get(opts, :atom_keys) === true do
         Enum.map(header_row, fn header ->
-          if is_binary(header), do: String.to_atom(header), else: header
+          cond do
+            is_atom(header) -> header
+            is_binary(header) -> String.to_atom(header)
+            true -> header
+          end
         end)
       else
         header_row
