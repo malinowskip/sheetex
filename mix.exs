@@ -30,7 +30,7 @@ defmodule Sheetex.MixProject do
       {:tesla, "~> 1.10"},
       {:jason, "~> 1.0"},
       {:hackney, "~> 1.20"},
-      {:ex_doc, "~> 0.34.1", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.36.1", only: :dev, runtime: false},
       {:dotenvy, "~> 0.8.0", only: [:test]}
     ]
   end
